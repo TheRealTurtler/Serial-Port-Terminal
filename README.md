@@ -18,3 +18,5 @@ look like this: [x1,y1][x2,y2][x3,y3]...
 
 # About
 This project was created with Qt.
+
+Icons used: https://www.deviantart.com/danrabbit/art/elementary-Icons-65437279
