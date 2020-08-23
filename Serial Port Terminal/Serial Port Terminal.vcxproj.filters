@@ -52,4 +52,9 @@
       <Filter>Resource Files</Filter>
     </QtUic>
   </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="Serial Port Terminal.rc">
+      <Filter>Resource Files</Filter>
+    </ResourceCompile>
+  </ItemGroup>
 </Project>
