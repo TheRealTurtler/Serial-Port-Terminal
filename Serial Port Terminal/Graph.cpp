@@ -9,18 +9,26 @@ Graph::Graph(QChartView* chartView, QString name)
 	chart = new QChart();
 
 	timeScale = 100;
-	maxPoints = 2000;
-	trigger = risingEdge;
+	//maxPoints = 300;	// max 300 without OpenGL
+	maxPoints = 5000;	// more with OpenGL
+	trigger = untriggered;
 	triggerLevel = 20;
 
-	blue = new QColor(0, 51, 128);
+	//blue = new QColor(0, 51, 128);
+	blue = new QColor(0, 106, 206);
 	green = new QColor(64, 195, 0);
+
+	QPen pen = series->pen();
+	pen.setWidth(2);
+
+	series->setPen(pen);
+	seriesPrev->setPen(pen);
 
 	seriesPrev->setColor(*green);
 	series->setColor(*blue);
 
-	//seriesPrev->setUseOpenGL(true);
-	//series->setUseOpenGL(true);
+	seriesPrev->setUseOpenGL(true);
+	series->setUseOpenGL(true);
 
 	chart->legend()->hide();
 	//chart->addSeries(seriesPrev);
@@ -37,12 +45,13 @@ Graph::Graph(QChartView* chartView, QString name)
 	chart->addAxis(xAxis, Qt::AlignBottom);
 	chart->addAxis(yAxis, Qt::AlignLeft);
 
-	/*
+	chart->addSeries(seriesPrev);
+	chart->addSeries(series);
+
 	seriesPrev->attachAxis(xAxis);
 	seriesPrev->attachAxis(yAxis);
 	series->attachAxis(xAxis);
 	series->attachAxis(yAxis);
-	*/
 
 	chart->setTitle(name);
 
@@ -55,66 +64,87 @@ void Graph::plotData(const QByteArray& data)
 	int x = 0;
 	static int xPrev = 0;
 	int y = 0;
-	int dataPos = 0;
+	int dataPos = 1;
 	int bufferNumPos = 0;
 	char bufferNum[16] = { 0 };
 
-	if (data.front() == '[' && data.back() == ']')
+	QList<QByteArray>* dataPoints = new QList<QByteArray>();
+
+	for (int i = 0; i < data.size(); i++)
 	{
-		while (dataPos <= data.size() - 2)
+		if (data.at(i) == '[')
 		{
-			while (data.at(dataPos) == '[' || data.at(dataPos) == ']')
+			QByteArray* dataPoint = new QByteArray();
+
+			dataPoint->append(data.at(i));
+
+			while (data.at(i) != ']' && i < data.size() - 1)
 			{
-				dataPos++;
+				i++;
+
+				dataPoint->append(data.at(i));
 			}
 
-			while (data.at(dataPos) != ',')
+			if (dataPoint->endsWith(']'))
 			{
-				bufferNum[bufferNumPos] = data.at(dataPos);
-
-				dataPos++;
-				bufferNumPos++;
+				dataPoints->append(*dataPoint);
 			}
 
-			bufferNum[bufferNumPos] = '\0';
-
-			x = atoi(bufferNum) % timeScale;
-
-			if (x < xPrev)
-			{
-				restartSeries();
-			}
-
-			xPrev = x;
-
-			strcpy(bufferNum, "");
-			bufferNumPos = 0;
-			dataPos++;
-
-			while (data.at(dataPos) != ']')
-			{
-				bufferNum[bufferNumPos] = data.at(dataPos);
-
-				dataPos++;
-				bufferNumPos++;
-			}
-
-			bufferNum[bufferNumPos] = '\0';
-
-			y = atoi(bufferNum);
-
-			strcpy(bufferNum, "");
-			bufferNumPos = 0;
-
-			addPoint(QPoint(x, y));
+			dataPoint->~QByteArray();
 		}
 	}
+
+	for (int i = 0; i < dataPoints->size(); i++)
+	{
+		dataPos = 1;
+		strcpy(bufferNum, "");
+		bufferNumPos = 0;
+
+		while (QChar::isDigit(dataPoints->at(i).at(dataPos)))
+		{
+			bufferNum[bufferNumPos] = dataPoints->at(i).at(dataPos);
+
+			dataPos++;
+			bufferNumPos++;
+		}
+
+		bufferNum[bufferNumPos] = '\0';
+
+		x = atoi(bufferNum) % timeScale;
+
+		if (x < xPrev)
+		{
+			restartSeries();
+		}
+
+		xPrev = x;
+
+		strcpy(bufferNum, "");
+		bufferNumPos = 0;
+		dataPos++;
+
+		while (QChar::isDigit(dataPoints->at(i).at(dataPos)))
+		{
+			bufferNum[bufferNumPos] = dataPoints->at(i).at(dataPos);
+
+			dataPos++;
+			bufferNumPos++;
+		}
+
+		bufferNum[bufferNumPos] = '\0';
+
+		y = atoi(bufferNum);
+
+		addPoint(QPoint(x, y));
+	}
+
+	dataPoints->~QList();
 }
 
 void Graph::addPoint(QPoint point)
 {
 	static int yPrev = 0;
-	static int xOffset = 0;
+	static int xTriggerOffset = 0;
 
 	if (series->count() > maxPoints)
 	{
@@ -133,8 +163,8 @@ void Graph::addPoint(QPoint point)
 		case risingEdge:
 			if (yPrev < point.y() && point.y() - yPrev > triggerLevel)
 			{
-				xOffset = point.x();
-				point.setX(point.x() - xOffset);
+				xTriggerOffset = point.x();
+				point.setX(point.x() - xTriggerOffset);
 				series->append(point);
 				yPrev = point.y();
 			}
@@ -148,8 +178,8 @@ void Graph::addPoint(QPoint point)
 		case fallingEdge:
 			if (yPrev > point.y() && yPrev - point.y() > triggerLevel)
 			{
-				xOffset = point.x();
-				point.setX(point.x() - xOffset);
+				xTriggerOffset = point.x();
+				point.setX(point.x() - xTriggerOffset);
 				series->append(point);
 				yPrev = point.y();
 			}
@@ -163,7 +193,7 @@ void Graph::addPoint(QPoint point)
 	}
 	else
 	{
-		point.setX(point.x() - xOffset);
+		point.setX(point.x() - xTriggerOffset);
 		series->append(point);
 		yPrev = point.y();
 	}
@@ -182,24 +212,6 @@ void Graph::addPoint(QPoint point)
 			}
 		}
 	}
-
-	redrawGraph();
-}
-
-void Graph::redrawGraph()
-{
-	chart->removeSeries(seriesPrev);
-	chart->removeSeries(series);
-
-	chart->addSeries(seriesPrev);
-	chart->addSeries(series);
-
-	seriesPrev->attachAxis(xAxis);
-	seriesPrev->attachAxis(yAxis);
-	series->attachAxis(xAxis);
-	series->attachAxis(yAxis);
-
-	graph->setChart(chart);
 }
 
 void Graph::restartSeries()
@@ -219,8 +231,6 @@ void Graph::setTimeScale(int time)
 	timeScale = time;
 
 	xAxis->setMax(time);
-	//series->detachAxis(series->attachedAxes().first());
-	//series->attachAxis(xAxis);
 }
 
 int Graph::getTimeScale()

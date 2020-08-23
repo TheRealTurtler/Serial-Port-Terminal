@@ -3,7 +3,7 @@
 Terminal::Terminal(QPlainTextEdit* textEdit)
 {
 	terminal = textEdit;
-	maxTextLength = 5000;
+	maxTextLength = 2000;
 	autoNewLines = false;
 }
 
@@ -35,6 +35,7 @@ void Terminal::putData(const QByteArray& data)
 		else
 		{
 			terminal->insertPlainText(data);
+			//terminal->appendPlainText(data);
 		}
 	}
 }

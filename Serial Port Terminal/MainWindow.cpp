@@ -13,8 +13,8 @@ MainWindow::MainWindow(QWidget* parent)
 	connect(ui.pushButton_CopyAll, &QPushButton::clicked, this, &MainWindow::copyTerminal);
 	connect(ui.horizontalSlider_ShownPoints, &QSlider::valueChanged, this, &MainWindow::timeScaleChanged);
 	connect(ui.spinBox_ShownPoints, QOverload<int>::of(&QSpinBox::valueChanged), this, &MainWindow::timeScaleChanged);
-	connect(ui.horizontalSlider_ShownPoints, SIGNAL(valueChanged(int)), ui.spinBox_ShownPoints, SLOT(setValue(int)));
-	connect(ui.spinBox_ShownPoints, SIGNAL(valueChanged(int)), ui.horizontalSlider_ShownPoints, SLOT(setValue(int)));
+	connect(ui.horizontalSlider_ShownPoints, QOverload<int>::of(&QSlider::valueChanged), ui.spinBox_ShownPoints, QOverload<int>::of(&QSpinBox::setValue));
+	connect(ui.spinBox_ShownPoints, QOverload<int>::of(&QSpinBox::valueChanged), ui.horizontalSlider_ShownPoints, QOverload<int>::of(&QSlider::setValue));
 	connect(ui.checkBox_ShowReceivedData, &QCheckBox::stateChanged, this, &MainWindow::showReceivedDataChanged);
 	connect(ui.checkBox_PlotData, &QCheckBox::stateChanged, this, &MainWindow::plotDataChanged);
 	connect(ui.checkBox_AutoNewLine, &QCheckBox::stateChanged, this, &MainWindow::autoNewLinesChanged);
@@ -30,6 +30,8 @@ MainWindow::MainWindow(QWidget* parent)
 
 	terminal = new Terminal(ui.plainTextEdit_Terminal);
 	graph = new Graph(ui.graphicsView_Graph, QString::QString("Graph"));
+
+	graph->statusBar = statusBar();
 
 	showReceivedData = ui.checkBox_ShowReceivedData->isChecked();
 	plotData = ui.checkBox_PlotData->isChecked();
@@ -191,6 +193,7 @@ void MainWindow::closePort()
 
 void MainWindow::writeData()
 {
+	// TODO
 }
 
 

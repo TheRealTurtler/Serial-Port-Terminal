@@ -15,6 +15,9 @@ public:
 	void setTrigger(int trigger);
 	int getTrigger();
 
+	// Debug
+	QStatusBar* statusBar;
+
 private:
 	QChartView* graph;
 	QLineSeries* seriesPrev;
@@ -33,7 +36,6 @@ private:
 	int trigger;
 	int triggerLevel;
 
-	void redrawGraph();
 	void restartSeries();
 
 	enum Triggered
